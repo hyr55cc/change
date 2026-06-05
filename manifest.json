@@ -1,0 +1,36 @@
+{
+  "name": "محوّل العملات",
+  "short_name": "محوّل",
+  "description": "تحويل فوري للعملات العالمية مع أسعار حية — يعمل دون اتصال",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#080e14",
+  "theme_color": "#0f1923",
+  "categories": ["finance", "utilities"],
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "تحويل سريع",
+      "short_name": "تحويل",
+      "description": "افتح محوّل العملات مباشرة",
+      "url": "./index.html",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0f1923" />
+  <meta name="description" content="محوّل العملات - تحويل فوري للعملات العالمية مع أسعار حية" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="محوّل العملات" />
+
+  <title>محوّل العملات</title>
+
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="stylesheet" href="style.css" />
+
+  <!-- Google Fonts: Noto Kufi Arabic + Noto Sans Arabic -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@300;400;500;600;700;900&family=Cairo:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <!-- Ambient background blobs -->
+  <div class="bg-layer" aria-hidden="true">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+  </div>
+
+  <!-- Offline/Online notification bar -->
+  <div id="networkBanner" class="network-banner hidden" role="alert" aria-live="polite"></div>
+
+  <main class="app-shell">
+
+    <!-- ===== HEADER ===== -->
+    <header class="app-header">
+      <div class="header-inner">
+        <div class="brand">
+          <div class="brand-icon" aria-hidden="true">
+            <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="20" cy="20" r="19" stroke="url(#g1)" stroke-width="2"/>
+              <path d="M13 20C13 16.13 16.13 13 20 13s7 3.13 7 7-3.13 7-7 7" stroke="url(#g2)" stroke-width="2.2" stroke-linecap="round"/>
+              <path d="M27 20C27 23.87 23.87 27 20 27s-7-3.13-7-7 3.13-7 7-7" stroke="url(#g3)" stroke-width="2.2" stroke-linecap="round"/>
+              <circle cx="20" cy="20" r="2.5" fill="url(#g1)"/>
+              <defs>
+                <linearGradient id="g1" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+                  <stop stop-color="#4fffb0"/>
+                  <stop offset="1" stop-color="#00b8d9"/>
+                </linearGradient>
+                <linearGradient id="g2" x1="13" y1="13" x2="27" y2="27" gradientUnits="userSpaceOnUse">
+                  <stop stop-color="#4fffb0"/>
+                  <stop offset="1" stop-color="#00b8d9"/>
+                </linearGradient>
+                <linearGradient id="g3" x1="27" y1="27" x2="13" y2="13" gradientUnits="userSpaceOnUse">
+                  <stop stop-color="#f7b731"/>
+                  <stop offset="1" stop-color="#fd9644"/>
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+          <span class="brand-title">محوّل العملات</span>
+        </div>
+        <div class="header-status">
+          <span id="statusDot" class="status-dot" aria-label="حالة الاتصال"></span>
+          <span id="statusLabel" class="status-label">جاري الاتصال…</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- ===== RESULT HERO CARD ===== -->
+    <section class="hero-section" aria-label="نتيجة التحويل">
+      <div class="result-card glass-card">
+        <div class="result-label" id="resultLabel">أدخل مبلغاً للتحويل</div>
+        <div class="result-amount" id="resultAmount" aria-live="polite" aria-atomic="true">
+          <span class="result-value">—</span>
+        </div>
+        <div class="result-meta" id="resultMeta"></div>
+        <div class="result-rate-row" id="rateRow" hidden>
+          <span class="rate-badge" id="rateBadge"></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== CONVERTER FORM ===== -->
+    <section class="converter-section" aria-label="نموذج التحويل">
+      <div class="converter-card glass-card">
+
+        <!-- Amount input -->
+        <div class="field-group">
+          <label for="amountInput" class="field-label">المبلغ</label>
+          <div class="input-wrapper">
+            <input
+              type="number"
+              id="amountInput"
+              class="amount-input"
+              placeholder="0.00"
+              min="0"
+              step="any"
+              inputmode="decimal"
+              aria-label="أدخل المبلغ"
+            />
+            <span class="input-decoration" aria-hidden="true">#</span>
+          </div>
+        </div>
+
+        <!-- Currency selectors row -->
+        <div class="selectors-row">
+          <!-- From currency -->
+          <div class="field-group selector-group">
+            <label for="fromCurrency" class="field-label">من</label>
+            <div class="select-wrapper">
+              <select id="fromCurrency" class="currency-select" aria-label="العملة المصدر">
+                <option value="USD">🇺🇸 USD</option>
+                <option value="EUR">🇪🇺 EUR</option>
+                <option value="GBP">🇬🇧 GBP</option>
+                <option value="BAM">🇧🇦 BAM</option>
+                <option value="SAR">🇸🇦 SAR</option>
+              </select>
+              <div class="select-icon" aria-hidden="true">
+                <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+              </div>
+            </div>
+          </div>
+
+          <!-- Swap button -->
+          <button class="swap-btn" id="swapBtn" aria-label="عكس اتجاه التحويل" title="عكس العملتين">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M7 16V4m0 0L3 8m4-4l4 4"/>
+              <path d="M17 8v12m0 0l4-4m-4 4l-4-4"/>
+            </svg>
+          </button>
+
+          <!-- To currency -->
+          <div class="field-group selector-group">
+            <label for="toCurrency" class="field-label">إلى</label>
+            <div class="select-wrapper">
+              <select id="toCurrency" class="currency-select" aria-label="العملة الهدف">
+                <option value="USD">🇺🇸 USD</option>
+                <option value="EUR">🇪🇺 EUR</option>
+                <option value="GBP">🇬🇧 GBP</option>
+                <option value="BAM" selected>🇧🇦 BAM</option>
+                <option value="SAR">🇸🇦 SAR</option>
+              </select>
+              <div class="select-icon" aria-hidden="true">
+                <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Convert button -->
+        <button class="convert-btn" id="convertBtn" aria-label="تحويل المبلغ">
+          <span class="btn-text">تحويل</span>
+          <span class="btn-spinner hidden" aria-hidden="true"></span>
+          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </button>
+
+      </div>
+    </section>
+
+    <!-- ===== RATES PANEL ===== -->
+    <section class="rates-section" aria-label="جدول الأسعار الحالية">
+      <div class="rates-header">
+        <h2 class="rates-title">أسعار الصرف الحالية</h2>
+        <button class="refresh-btn" id="refreshBtn" aria-label="تحديث الأسعار">
+          <svg id="refreshIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M23 4v6h-6"/>
+            <path d="M1 20v-6h6"/>
+            <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Base selector -->
+      <div class="base-selector-row">
+        <span class="base-label">الأساس:</span>
+        <div class="base-chips" id="baseChips" role="radiogroup" aria-label="اختر العملة الأساسية">
+          <button class="base-chip active" data-currency="USD" role="radio" aria-checked="true">USD</button>
+          <button class="base-chip" data-currency="EUR" role="radio" aria-checked="false">EUR</button>
+          <button class="base-chip" data-currency="GBP" role="radio" aria-checked="false">GBP</button>
+          <button class="base-chip" data-currency="BAM" role="radio" aria-checked="false">BAM</button>
+          <button class="base-chip" data-currency="SAR" role="radio" aria-checked="false">SAR</button>
+        </div>
+      </div>
+
+      <!-- Rates grid -->
+      <div class="rates-grid" id="ratesGrid" aria-live="polite">
+        <!-- Populated by JS -->
+      </div>
+
+      <!-- Last updated footer -->
+      <div class="rates-footer">
+        <span class="update-icon" aria-hidden="true">🕐</span>
+        <span id="lastUpdated" class="last-updated">جاري جلب الأسعار…</span>
+        <span id="dataSource" class="data-source"></span>
+      </div>
+    </section>
+
+    <!-- Loading overlay -->
+    <div id="loadingOverlay" class="loading-overlay hidden" aria-label="جاري التحميل" role="status">
+      <div class="loader-ring"></div>
+      <p class="loader-text">جاري جلب أسعار الصرف…</p>
+    </div>
+
+  </main>
+
+  <!-- Toast container -->
+  <div id="toastContainer" class="toast-container" aria-live="assertive" aria-atomic="true"></div>
+
+  <script src="script.js"></script>
+</body>
+</html>
