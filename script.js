@@ -32,15 +32,15 @@ const STORAGE_KEYS = {
   baseUsed:    'ccBaseUsed',
 };
 
-// We use the Frankfurter API (free, no key needed)
-const API_URL = 'https://api.frankfurter.app/latest?from=USD&to=EUR,GBP,BAM,SAR';
+// Frankfurter v2 API — returns array of { base, quote, rate, date }
+const API_URL = 'https://api.frankfurter.dev/v2/rates?base=USD&quotes=EUR,GBP,BAM,SAR';
 
 /* ── State ────────────────────────────────────────────────── */
 let state = {
-  rates: null,          // { USD:1, EUR:0.92, ... }
-  lastUpdated: null,    // ISO string
-  dataSource: 'none',   // 'api' | 'cache' | 'fallback'
-  baseCurrency: 'USD',  // base for rates table
+  rates: null,
+  lastUpdated: null,
+  dataSource: 'none',
+  baseCurrency: 'USD',
   isOnline: navigator.onLine,
   isFetching: false,
 };
@@ -76,7 +76,6 @@ const dom = {
 /* ── Utilities ────────────────────────────────────────────── */
 function formatNumber(num, decimals = 4) {
   if (isNaN(num) || num === null) return '—';
-  // Round off excessive decimals for display
   const d = num < 1 ? 4 : num < 100 ? 3 : 2;
   return new Intl.NumberFormat('en-US', {
     minimumFractionDigits: 2,
@@ -134,10 +133,15 @@ async function fetchLiveRates(silent = false) {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
 
-    // Frankfurter returns { rates: { EUR, GBP, ... }, base: 'USD', date: '...' }
-    const rates = { USD: 1, ...data.rates };
+    // Frankfurter v2 returns an array: [{ base, quote, rate, date }, ...]
+    const rates = { USD: 1 };
+    if (Array.isArray(data)) {
+      data.forEach(item => {
+        if (item.quote && item.rate) rates[item.quote] = item.rate;
+      });
+    }
 
-    // Ensure all supported currencies present
+    // Ensure all supported currencies present (fallback for missing)
     SUPPORTED_CURRENCIES.forEach(c => {
       if (!(c in rates)) rates[c] = FALLBACK_RATES[c];
     });
@@ -158,7 +162,6 @@ async function fetchLiveRates(silent = false) {
     if (!silent) {
       showToast('تعذّر جلب الأسعار. يتم استخدام البيانات المخزّنة.', 'error');
     }
-    // Fall back to stored / default
     if (!state.rates) initFallbackRates();
   } finally {
     state.isFetching = false;
@@ -187,7 +190,6 @@ function convertAmount(amount, from, to, rates) {
   const amtNum = parseFloat(amount);
   if (isNaN(amtNum) || amtNum < 0) return null;
 
-  // Convert to USD base, then to target
   const rateFrom = rates[from];
   const rateTo   = rates[to];
   if (!rateFrom || !rateTo) return null;
@@ -222,7 +224,6 @@ function handleConvert() {
     return;
   }
 
-  // Button feedback
   dom.convertBtn.disabled = true;
   dom.btnText.textContent = 'جاري…';
   dom.btnSpinner.classList.remove('hidden');
@@ -241,9 +242,8 @@ function renderResult(amount, from, to, result) {
   const fromMeta = CURRENCY_META[from];
   const toMeta   = CURRENCY_META[to];
 
-  // Animated update
   dom.resultValue.classList.remove('animating');
-  void dom.resultValue.offsetWidth; // reflow
+  void dom.resultValue.offsetWidth;
   dom.resultValue.classList.add('animating');
   dom.resultValue.textContent = `${formatNumber(result)} ${to}`;
 
@@ -251,7 +251,6 @@ function renderResult(amount, from, to, result) {
   dom.resultMeta.textContent  =
     `${fromMeta.flag} ${fromMeta.name} → ${toMeta.flag} ${toMeta.name}`;
 
-  // Rate badge
   const rate = (state.rates[to] / state.rates[from]);
   dom.rateBadge.textContent = `1 ${from} = ${formatNumber(rate, 4)} ${to}`;
   dom.rateRow.hidden = false;
@@ -274,8 +273,8 @@ function renderRatesGrid(base) {
 
   const baseRate = state.rates[base];
   const cards = SUPPORTED_CURRENCIES.map((c, i) => {
-    const meta  = CURRENCY_META[c];
-    const value = c === base ? 1 : (state.rates[c] / baseRate);
+    const meta   = CURRENCY_META[c];
+    const value  = c === base ? 1 : (state.rates[c] / baseRate);
     const isBase = c === base;
 
     return `
@@ -316,7 +315,6 @@ function initBaseChips() {
       const currency = chip.dataset.currency;
       state.baseCurrency = currency;
 
-      // Update aria & active class
       dom.baseChips.querySelectorAll('.base-chip').forEach(c => {
         c.classList.remove('active');
         c.setAttribute('aria-checked', 'false');
@@ -331,11 +329,11 @@ function initBaseChips() {
 
 /* ── Online / Offline ─────────────────────────────────────── */
 function updateNetworkStatus() {
-  const online = navigator.onLine;
+  const online    = navigator.onLine;
   const wasOffline = !state.isOnline;
-  state.isOnline = online;
+  state.isOnline  = online;
 
-  dom.statusDot.className   = `status-dot ${online ? 'online' : 'offline'}`;
+  dom.statusDot.className     = `status-dot ${online ? 'online' : 'offline'}`;
   dom.statusLabel.textContent = online ? 'متصل' : 'غير متصل';
 
   if (online) {
@@ -344,7 +342,6 @@ function updateNetworkStatus() {
     dom.networkBanner.classList.remove('hidden');
     setTimeout(() => dom.networkBanner.classList.add('hidden'), 4000);
 
-    // Auto-refresh on reconnect
     if (wasOffline) {
       fetchLiveRates(true).then(() => {
         showToast('🔄 تم تحديث الأسعار تلقائياً عند استعادة الاتصال', 'success');
@@ -364,7 +361,6 @@ function swapCurrencies() {
   dom.fromCurrency.value = to;
   dom.toCurrency.value   = from;
 
-  // If there's a result, re-convert
   if (dom.amountInput.value) handleConvert();
 }
 
@@ -379,14 +375,13 @@ function showToast(message, type = 'info') {
   `;
   dom.toastContainer.appendChild(toast);
 
-  // Auto-dismiss
   setTimeout(() => {
     toast.classList.add('removing');
     toast.addEventListener('animationend', () => toast.remove());
   }, 3500);
 }
 
-/* ── Shake animation (input validation) ──────────────────── */
+/* ── Shake animation ──────────────────────────────────────── */
 function shakeElement(el) {
   el.style.animation = 'none';
   void el.offsetWidth;
@@ -394,7 +389,6 @@ function shakeElement(el) {
   el.addEventListener('animationend', () => { el.style.animation = ''; }, { once: true });
 }
 
-// Inject shake keyframes if not present
 const shakeStyle = document.createElement('style');
 shakeStyle.textContent = `
   @keyframes shake {
@@ -411,12 +405,8 @@ function registerServiceWorker() {
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker
       .register('./sw.js')
-      .then(reg => {
-        console.log('[SW] Registered:', reg.scope);
-      })
-      .catch(err => {
-        console.warn('[SW] Registration failed:', err);
-      });
+      .then(reg => console.log('[SW] Registered:', reg.scope))
+      .catch(err => console.warn('[SW] Registration failed:', err));
   }
 }
 
@@ -437,21 +427,15 @@ function handleLiveConvert() {
 
 /* ── Initialise ───────────────────────────────────────────── */
 function init() {
-  // 1. Load cached rates immediately (synchronous)
   initFallbackRates();
-
-  // 2. Update network status indicator
   updateNetworkStatus();
 
-  // 3. Fetch live rates if online
   if (state.isOnline) {
     fetchLiveRates(false);
   }
 
-  // 4. Register service worker
   registerServiceWorker();
 
-  // 5. Event listeners
   dom.convertBtn.addEventListener('click', handleConvert);
   dom.swapBtn.addEventListener('click', swapCurrencies);
   dom.refreshBtn.addEventListener('click', () => {
@@ -462,27 +446,21 @@ function init() {
     fetchLiveRates(false);
   });
 
-  // Live conversion on input changes
   dom.amountInput.addEventListener('input', handleLiveConvert);
   dom.fromCurrency.addEventListener('change', handleLiveConvert);
   dom.toCurrency.addEventListener('change', handleLiveConvert);
 
-  // Enter key to convert
   dom.amountInput.addEventListener('keydown', e => {
     if (e.key === 'Enter') handleConvert();
   });
 
-  // Network events
   window.addEventListener('online',  updateNetworkStatus);
   window.addEventListener('offline', updateNetworkStatus);
 
-  // Base currency chips
   initBaseChips();
 
-  // Set default currency selections
   dom.fromCurrency.value = 'USD';
   dom.toCurrency.value   = 'EUR';
 }
 
-// Boot
 document.addEventListener('DOMContentLoaded', init);
